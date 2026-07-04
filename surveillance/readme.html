@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mpv-advance 监控播放器 — 使用说明</title>
+<style>
+  :root{
+    --bg:#0a0d10; --panel:#12171c; --panel2:#161c22; --line:#232b33;
+    --fg:#e6edf3; --dim:#9fb0bf; --accent:#2f9beb; --green:#4bc46b;
+    --orange:#e0912f; --red:#eb4b4b; --key:#1d2731;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font:15px/1.7 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif;}
+  .wrap{max-width:920px;margin:0 auto;padding:40px 24px 80px;}
+  header{border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:8px;}
+  h1{font-size:26px;margin:0 0 6px;letter-spacing:.5px;}
+  h1 .dot{color:var(--green);}
+  .sub{color:var(--dim);font-size:14px;}
+  h2{font-size:19px;margin:36px 0 14px;padding-left:10px;
+    border-left:3px solid var(--accent);}
+  h3{font-size:15px;margin:22px 0 8px;color:var(--accent);}
+  p{margin:10px 0;color:var(--fg);}
+  code{background:var(--key);padding:2px 7px;border-radius:5px;
+    font-family:"Cascadia Code",Consolas,monospace;font-size:13px;color:#cfe8ff;}
+  pre{background:#0d1216;border:1px solid var(--line);border-radius:8px;
+    padding:14px 16px;overflow:auto;margin:12px 0;}
+  pre code{background:none;padding:0;color:#c8d6e0;}
+  table{width:100%;border-collapse:collapse;margin:14px 0;
+    background:var(--panel);border-radius:8px;overflow:hidden;}
+  th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);}
+  th{background:var(--panel2);color:var(--dim);font-weight:600;font-size:13px;
+    text-transform:uppercase;letter-spacing:.5px;}
+  tr:last-child td{border-bottom:none;}
+  td:first-child{white-space:nowrap;}
+  kbd{display:inline-block;background:var(--key);border:1px solid #33404b;
+    border-bottom-width:2px;border-radius:5px;padding:2px 8px;margin:1px;
+    font-family:Consolas,monospace;font-size:12.5px;color:#dfeaf2;
+    min-width:18px;text-align:center;}
+  .note{background:var(--panel);border-left:3px solid var(--orange);
+    border-radius:0 8px 8px 0;padding:12px 16px;margin:16px 0;color:var(--dim);}
+  .note b{color:var(--fg);}
+  .steps{counter-reset:s;list-style:none;padding:0;margin:12px 0;}
+  .steps li{counter-increment:s;position:relative;padding:8px 0 8px 40px;
+    border-bottom:1px solid var(--line);}
+  .steps li:last-child{border-bottom:none;}
+  .steps li::before{content:counter(s);position:absolute;left:0;top:8px;
+    width:26px;height:26px;background:var(--accent);color:#031018;
+    border-radius:50%;text-align:center;line-height:26px;font-weight:700;font-size:13px;}
+  .flow{background:var(--panel);border:1px solid var(--line);border-radius:8px;
+    padding:14px 16px;margin:14px 0;font-size:14px;}
+  .flow kbd{margin:0 2px;}
+  .tag{display:inline-block;font-size:12px;padding:1px 8px;border-radius:10px;
+    margin-left:6px;vertical-align:middle;}
+  .tag.g{background:rgba(75,196,107,.15);color:var(--green);}
+  .tag.o{background:rgba(224,145,47,.15);color:var(--orange);}
+  a{color:var(--accent);}
+  footer{margin-top:48px;padding-top:16px;border-top:1px solid var(--line);
+    color:var(--dim);font-size:13px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1><span class="dot">●</span> mpv-advance 监控播放器</h1>
+  <div class="sub">多路分割网格 · 可搜索摄像头菜单 · 实时/回放切换 · 按墙钟时间的时段回放 · 常驻窗口</div>
+</header>
+
+<h2>快速开始</h2>
+<p>双击一键启动脚本即可（会自动拉起 mock API 并启动播放器，关窗后自动清理）：</p>
+<pre><code>surveillance\launch.cmd</code></pre>
+<p>或手动分两步：</p>
+<pre><code># 1) 启动 mock 摄像头 API（默认 127.0.0.1:8777）
+python surveillance/api/mock_camera_api.py --port 8777
+
+# 2) 用便携配置启动 mpv
+mpv --config-dir=surveillance/portable_config</code></pre>
+<div class="note">API 不可用时脚本<b>自动回退</b>读取 <code>data/cameras.json</code>，功能不中断。覆盖层右上角显示当前数据源为 <b>API</b> 还是 <b>本地</b>。</div>
+
+<h2>全部快捷键</h2>
+<table>
+  <thead><tr><th>按键</th><th>作用</th></tr></thead>
+  <tbody>
+    <tr><td><kbd>c</kbd></td><td><b>选择摄像头</b>（可搜索）→ 赋给当前画格</td></tr>
+    <tr><td><kbd>\</kbd> <kbd>MENU</kbd></td><td>监控主菜单</td></tr>
+    <tr><td><kbd>g</kbd></td><td>循环布局 1→4→9</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd></td><td>直达 单画面 / 四分割 / 九分割</td></tr>
+    <tr><td><kbd>TAB</kbd></td><td>选中下一个画格</td></tr>
+    <tr><td><kbd>1</kbd> … <kbd>9</kbd></td><td>直接选中第 N 个画格</td></tr>
+    <tr><td><kbd>l</kbd></td><td>实时 / 回放 切换</td></tr>
+    <tr><td><kbd>k</kbd></td><td><b>时段回放菜单</b>（预设 / 自定义 / 事件 / A-B 循环）</td></tr>
+    <tr><td><kbd>K</kbd> <span class="sub">(Shift+k)</span></td><td>回放微调：相对跳转 / 百分比定位</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>a</kbd></td><td>自动填充所有画格</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>r</kbd></td><td>刷新摄像头列表</td></tr>
+    <tr><td><kbd>DEL</kbd> / <kbd>Ctrl</kbd>+<kbd>DEL</kbd></td><td>清空当前画格 / 全部清空</td></tr>
+  </tbody>
+</table>
+<h2>如何选择摄像头</h2>
+<ol class="steps">
+  <li>先按数字键 <kbd>1</kbd>…<kbd>9</kbd>（或 <kbd>TAB</kbd>）选中要操作的<b>画格</b>——覆盖层上会出现高亮边框</li>
+  <li>按 <kbd>c</kbd> 打开摄像头列表</li>
+  <li><b>直接打字即模糊搜索</b>（名称 / 分组 / 位置 / ID / 标签都能匹配），<kbd>↑</kbd><kbd>↓</kbd> 移动，<kbd>回车</kbd> 确认</li>
+  <li>选中的摄像头填入刚才那个画格</li>
+</ol>
+<p>想一次填满整个网格，不用逐个选，直接按 <kbd>Ctrl</kbd>+<kbd>a</kbd> 自动填充（在线优先）。</p>
+
+<h2>如何回放时段</h2>
+<p>按 <kbd>k</kbd> 打开时段回放菜单，五类选项：</p>
+<table>
+  <thead><tr><th>选项</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td>⏱ 预设时段</td><td>最近 5 / 15 / 30 分钟、最近 1 小时、今天 00:00、昨天 00:00，选中直接跳转</td></tr>
+    <tr><td>🗓 自定义时间</td><td>输入 <code>YYYY-MM-DD HH:MM</code>，或只写 <code>HH:MM</code> 表示今天</td></tr>
+    <tr><td>⚑ 按事件跳转</td><td>列出该摄像头事件（移动侦测 / 人形 / 越界 / 车辆 / 逗留），选一条定位到那一刻</td></tr>
+    <tr><td>🔁 A-B 循环片段</td><td>在当前位置设 A 点、B 点，反复循环查看某一段</td></tr>
+    <tr><td>🎚 播放微调</td><td>等同 <kbd>K</kbd>，±10/60 秒或 25/50/75% 定位</td></tr>
+  </tbody>
+</table>
+<div class="note">
+  <b>两点注意：</b><br>
+  1. 进入时段回放会<b>自动切成单画面</b><span class="tag o">重要</span>——多路网格共用一条时间轴，无法逐路 seek，单画面才能精确定位。所以按 <kbd>k</kbd> 之前，先用 <kbd>1</kbd>…<kbd>9</kbd> 选好要回放<b>哪一路</b>。<br>
+  2. 片段播完停在末帧不退出（常驻）。看完想回实时，菜单选「● 返回实时 LIVE」或直接按 <kbd>l</kbd>。
+</div>
+<h3>典型流程</h3>
+<div class="flow">
+  <kbd>3</kbd> <span class="sub">选第 3 路</span> &nbsp;→&nbsp;
+  <kbd>k</kbd> <span class="sub">时段回放菜单</span> &nbsp;→&nbsp;
+  选「最近 15 分钟」 &nbsp;→&nbsp;
+  <span class="tag g">自动单画面定位播放</span> &nbsp;→&nbsp;
+  看完 <kbd>l</kbd> <span class="sub">回实时</span>
+</div>
+
+<h2>常驻不退出</h2>
+<p><code>mpv.conf</code> 通过三项叠加保证播放器常驻：<code>idle=yes</code>（无文件也保活）、<code>force-window=yes</code>（始终显示窗口）、<code>keep-open=yes</code> + <code>keep-open-pause=yes</code>（播放结束停在末帧并暂停）。实时模式循环样本模拟持续画面；回放模式片段播完停末帧等待下一步。</p>
+
+<footer>
+  完整技术说明见仓库内 <code>surveillance/README.md</code>。<br>
+  提示：mock API 是<b>无鉴权</b>的本地演示服务，请勿暴露到网络。
+</footer>
+</div>
+</body>
+</html>

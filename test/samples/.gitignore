@@ -1,0 +1,8 @@
+# 监控演示用的本地视频样本，不入库（体积大且可自备）
+# surveillance/README.md 说明了样本目录用途
+*.mp4
+*.mkv
+*.mov
+*.avi
+*.ts
+*.flv

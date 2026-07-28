@@ -4,19 +4,19 @@
   "note": "字段 file 为样本文件名，服务端/客户端会拼接 samples_dir 解析为可播放路径。status: online 在线 / recording 录像中 / offline 离线。",
   "cameras": [
     { "id": "CH01", "name": "主楼大堂东入口", "group": "A区-主楼", "location": "1F 大堂东门", "status": "online",    "file": "channel001.mp4", "resolution": "1080p", "tags": ["门禁", "人流", "室内"] },
-    { "id": "CH02", "name": "主楼大堂西入口", "group": "A区-主楼", "location": "1F 大堂西门", "status": "online",    "file": "channel002.mkv", "resolution": "4K",    "tags": ["门禁", "人流", "室内"] },
+    { "id": "CH02", "name": "主楼大堂西入口", "group": "A区-主楼", "location": "1F 大堂西门", "status": "online",    "file": "channel002.mp4", "resolution": "1080p", "tags": ["门禁", "人流", "室内"] },
     { "id": "CH03", "name": "电梯厅 3 号梯", "group": "A区-主楼", "location": "1F 电梯厅",   "status": "recording", "file": "channel003.mp4", "resolution": "1080p", "tags": ["电梯", "室内"] },
     { "id": "CH04", "name": "地下车库 B1 入口", "group": "B区-车库", "location": "B1 车道入口", "status": "online",    "file": "channel001.mp4", "resolution": "1080p", "tags": ["车牌", "闸机", "车库"] },
-    { "id": "CH05", "name": "地下车库 B1 通道", "group": "B区-车库", "location": "B1 主通道",   "status": "online",    "file": "channel002.mkv", "resolution": "4K",    "tags": ["车库", "巡逻"] },
+    { "id": "CH05", "name": "地下车库 B1 通道", "group": "B区-车库", "location": "B1 主通道",   "status": "online",    "file": "channel002.mp4", "resolution": "1080p", "tags": ["车库", "巡逻"] },
     { "id": "CH06", "name": "地下车库 B2 电梯口", "group": "B区-车库", "location": "B2 电梯口", "status": "offline",   "file": "channel003.mp4", "resolution": "1080p", "tags": ["车库", "电梯"] },
     { "id": "CH07", "name": "北门周界围栏", "group": "C区-周界", "location": "北门围栏",   "status": "recording", "file": "channel001.mp4", "resolution": "1080p", "tags": ["周界", "室外", "越界"] },
-    { "id": "CH08", "name": "南门周界围栏", "group": "C区-周界", "location": "南门围栏",   "status": "online",    "file": "channel002.mkv", "resolution": "4K",    "tags": ["周界", "室外", "越界"] },
+    { "id": "CH08", "name": "南门周界围栏", "group": "C区-周界", "location": "南门围栏",   "status": "online",    "file": "channel002.mp4", "resolution": "1080p", "tags": ["周界", "室外", "越界"] },
     { "id": "CH09", "name": "东侧消防通道", "group": "C区-周界", "location": "东楼消防通道", "status": "online",    "file": "channel003.mp4", "resolution": "1080p", "tags": ["消防", "通道", "室外"] },
     { "id": "CH10", "name": "货梯装卸区",   "group": "D区-仓储", "location": "1F 卸货平台", "status": "online",    "file": "channel001.mp4", "resolution": "1080p", "tags": ["货运", "装卸"] },
-    { "id": "CH11", "name": "仓库主通道",   "group": "D区-仓储", "location": "仓库 A 区",   "status": "recording", "file": "channel002.mkv", "resolution": "4K",    "tags": ["仓储", "库存"] },
+    { "id": "CH11", "name": "仓库主通道",   "group": "D区-仓储", "location": "仓库 A 区",   "status": "recording", "file": "channel002.mp4", "resolution": "1080p", "tags": ["仓储", "库存"] },
     { "id": "CH12", "name": "冷库监控点",   "group": "D区-仓储", "location": "冷库 -18℃",   "status": "offline",   "file": "channel003.mp4", "resolution": "1080p", "tags": ["冷库", "温控"] },
     { "id": "CH13", "name": "楼顶天面云台", "group": "E区-室外", "location": "屋顶东南角", "status": "online",    "file": "channel001.mp4", "resolution": "1080p", "tags": ["云台", "室外", "全景"] },
-    { "id": "CH14", "name": "广场人脸抓拍", "group": "E区-室外", "location": "中心广场",   "status": "online",    "file": "channel002.mkv", "resolution": "4K",    "tags": ["人脸", "抓拍", "室外"] },
+    { "id": "CH14", "name": "广场人脸抓拍", "group": "E区-室外", "location": "中心广场",   "status": "online",    "file": "channel002.mp4", "resolution": "1080p", "tags": ["人脸", "抓拍", "室外"] },
     { "id": "CH15", "name": "访客登记前台", "group": "A区-主楼", "location": "1F 前台",     "status": "recording", "file": "channel003.mp4", "resolution": "1080p", "tags": ["前台", "访客", "室内"] }
   ]
 }

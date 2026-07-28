@@ -41,7 +41,9 @@ EVENT_TYPES = ["移动侦测", "人形检测", "越界告警", "车辆识别", "
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(os.path.dirname(HERE))          # surveillance/api -> repo 根
 DEFAULT_DATA = os.path.join(HERE, "..", "data", "cameras.json")
-DEFAULT_SAMPLES = os.path.join(REPO_ROOT, "test", "samples")
+PORTABLE_SAMPLES = os.path.join(REPO_ROOT, "surveillance", "samples")
+DEFAULT_SAMPLES = (PORTABLE_SAMPLES if os.path.isdir(PORTABLE_SAMPLES)
+                   else os.path.join(REPO_ROOT, "test", "samples"))
 
 
 def load_db(data_file):

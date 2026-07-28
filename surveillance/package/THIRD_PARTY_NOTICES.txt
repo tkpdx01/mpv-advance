@@ -1,0 +1,19 @@
+mpv-advance portable package - third-party notices
+===================================================
+
+Bundled player
+--------------
+mpv v0.36.0-549-g78d43740, Windows build dated 2023-10-15.
+Build source: https://sourceforge.net/projects/mpv-player-windows/
+Build scripts: https://github.com/shinchiro/mpv-winbuild-cmake
+mpv source: https://github.com/mpv-player/mpv/commit/78d43740
+
+This fixed build is used because later upstream Windows builds require Windows
+8 or newer APIs. mpv and its linked components are distributed under their
+respective open-source licenses. See LICENSE.GPL.txt, LICENSE.LGPL.txt and
+mpv-Copyright.txt in this directory.
+
+Synthetic demo media
+--------------------
+The three included video clips were generated from FFmpeg lavfi test sources.
+They contain no third-party footage.

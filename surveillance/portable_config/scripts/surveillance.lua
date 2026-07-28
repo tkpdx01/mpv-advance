@@ -18,7 +18,7 @@
 ]]
 
 local utils = require "mp.utils"
-local input = require "mp.input"
+local input_ok, input = pcall(require, "mp.input")
 local msg   = require "mp.msg"
 
 --------------------------------------------------------------------------------
@@ -26,6 +26,8 @@ local msg   = require "mp.msg"
 --------------------------------------------------------------------------------
 
 local opts = {
+    api_enabled     = false,                    -- 默认纯本地运行；开启后使用 curl 请求 API
+    single_view     = true,                     -- V1：单窗口单路播放，后续版本再开放多路布局
     api_base        = "http://127.0.0.1:8777", -- mock 摄像头 API 地址
     data_file       = "",                       -- cameras.json；空=自动定位到 ../data
     samples_dir     = "",                       -- 样本目录；空=自动定位到仓库 test/samples
@@ -36,6 +38,7 @@ local opts = {
     autofill        = true,                     -- 启动时自动用前若干路填满网格
     request_timeout = 1.5,                      -- API 请求超时（秒）
     overlay         = true,                     -- 是否绘制画格覆盖层
+    smoke_test      = false,                    -- 打包校验：初始化后自动退出
 }
 require "mp.options".read_options(opts, "surveillance")
 
@@ -45,8 +48,15 @@ if opts.data_file == "" then
     opts.data_file = config_dir .. "/../data/cameras.json"
 end
 if opts.samples_dir == "" then
-    -- portable_config/../../test/samples == <仓库根>/test/samples
-    opts.samples_dir = config_dir .. "/../../test/samples"
+    -- 发布包把样本放在 portable_config/../samples；源码树继续兼容 test/samples。
+    local portable_samples = config_dir .. "/../samples"
+    local probe = io.open(portable_samples .. "/channel001.mp4", "rb")
+    if probe then
+        probe:close()
+        opts.samples_dir = portable_samples
+    else
+        opts.samples_dir = config_dir .. "/../../test/samples"
+    end
 end
 
 local LAYOUTS = {
@@ -60,7 +70,7 @@ local LAYOUTS = {
 --------------------------------------------------------------------------------
 
 local state = {
-    layout   = LAYOUTS[opts.default_layout] and opts.default_layout or 4,
+    layout   = opts.single_view and 1 or (LAYOUTS[opts.default_layout] and opts.default_layout or 4),
     slots    = {},        -- slots[i] = 摄像头对象 或 nil
     active   = 1,         -- 当前选中画格（用于赋值 / 单画面）
     mode     = "live",    -- "live" | "playback"
@@ -85,11 +95,46 @@ local function osd(text, dur)
     mp.osd_message(text, dur or 2)
 end
 
+-- mpv 0.37 起 loadfile 增加了 playlist index 参数；Win7 固定版 0.36 仍使用
+-- loadfile <url> <flags> <options>。从 command-list 检测签名，避免硬编码版本号。
+local loadfile_has_index = false
+for _, command in ipairs(mp.get_property_native("command-list") or {}) do
+    if command.name == "loadfile" then
+        for _, arg in ipairs(command.args or {}) do
+            if arg.name == "index" then loadfile_has_index = true end
+        end
+    end
+end
+
+local function load_source(source, options)
+    options = options or ""
+    if loadfile_has_index then
+        mp.commandv("loadfile", source, "replace", "-1", options)
+    elseif options ~= "" then
+        mp.commandv("loadfile", source, "replace", options)
+    else
+        mp.commandv("loadfile", source, "replace")
+    end
+end
+
+--------------------------------------------------------------------------------
+-- 输入兼容层
+-- mp.input 是较新 mpv 才提供的模块。Win7 固定版 mpv 0.36 没有它，因此这里
+-- 提供一个只依赖基础 Lua API 的菜单/文本输入实现，保证 x86/x64 发布包可用。
+--------------------------------------------------------------------------------
+
+if not input_ok then
+    local module_path = mp.command_native({"expand-path", "~~/script-modules/surveillance_compat_input.lua"})
+    input = dofile(module_path)
+    msg.info("mp.input 不可用，已启用 Win7 兼容菜单")
+end
+
 --------------------------------------------------------------------------------
 -- API 客户端：优先 HTTP（curl），失败回退本地 JSON
 --------------------------------------------------------------------------------
 
 local function http_get_json(path)
+    if not opts.api_enabled then return nil end
     local r = mp.command_native({
         name          = "subprocess",
         playback_only = false,
@@ -370,7 +415,7 @@ local function apply()
         pending_lavfi = nil
         local flags = state.mode == "playback" and start and start > 0
             and ("start=" .. start) or ""
-        mp.commandv("loadfile", src, "replace", "-1", flags)
+        load_source(src, flags)
         draw_overlay()
         return
     end
@@ -389,7 +434,7 @@ local function apply()
     if state.mode == "playback" and first_start and first_start > 0 then
         flags = "start=" .. first_start
     end
-    mp.commandv("loadfile", first_src, "replace", "-1", flags)
+    load_source(first_src, flags)
     draw_overlay()
 end
 
@@ -496,7 +541,7 @@ local function enter_playback_at(cam, epoch, label, duration)
     pending_lavfi = nil
     pending_seek_percent = pb.start_percent  -- file-loaded 后跳转
 
-    mp.commandv("loadfile", pb.source, "replace", "-1", "")
+    load_source(pb.source)
 
     local warn = pb.in_range and "" or "（超出录像范围，已就近定位）"
     osd(string.format("▷ 回放 %s\n%s  @ %s%s",
@@ -508,7 +553,7 @@ local function open_main_menu()
     local L = LAYOUTS[state.layout]
     local labels = {
         "① 选择摄像头 → 当前画格 [" .. state.active .. "]",
-        "② 布局切换（当前：" .. L.label .. "）",
+        opts.single_view and "② V1 单窗口模式" or ("② 布局切换（当前：" .. L.label .. "）"),
         "③ 实时 / 回放切换（当前：" .. (state.mode == "live" and "实时" or "回放") .. "）",
         "④ 时段回放（预设/自定义/事件/AB循环）",
         "⑤ 自动填充全部画格",
@@ -521,6 +566,8 @@ local function open_main_menu()
         items = labels,
         submit = function (i)
             if i == 1 then open_camera_menu(state.active)
+            elseif i == 2 and opts.single_view then
+                osd("V1 为单窗口单路播放；多路/多窗口将在后续版本开放")
             elseif i == 2 then
                 input.select({
                     prompt = "选择布局：",
@@ -544,6 +591,10 @@ end
 
 function set_layout(n)
     if not LAYOUTS[n] then return end
+    if opts.single_view and n ~= 1 then
+        osd("V1 为单窗口单路播放")
+        return
+    end
     state.layout = n
     if state.active > ncells() then state.active = 1 end
     if opts.autofill then
@@ -557,6 +608,10 @@ function set_layout(n)
 end
 
 local function cycle_layout()
+    if opts.single_view then
+        osd("V1 为单窗口单路播放")
+        return
+    end
     local order = { [1] = 4, [4] = 9, [9] = 1 }
     set_layout(order[state.layout] or 4)
 end
@@ -769,6 +824,9 @@ local function init()
         apply()
     else
         draw_overlay()
+    end
+    if opts.smoke_test then
+        mp.add_timeout(1, function () mp.commandv("quit") end)
     end
 end
 

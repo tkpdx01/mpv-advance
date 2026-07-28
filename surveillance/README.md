@@ -29,6 +29,11 @@ surveillance\start.cmd
 源码启动器优先使用 `surveillance/runtime/mpv.exe`，其次读取 `MPV` 环境变量或
 PATH。默认使用本地 JSON 和 `surveillance/samples`，不会启动任何后台服务。
 
+播放器在非全屏窗口底部常驻显示常用快捷键提示；进入全屏后会清空自定义覆盖层，
+退出全屏时自动恢复。提示栏使用 mpv 的 ASS 覆盖层绘制，不依赖 Windows 标题栏；
+如需关闭，可在 `portable_config/script-opts/surveillance.conf` 中设置
+`shortcut_hints=no`。
+
 ## 按键
 
 | 键 | 功能 |

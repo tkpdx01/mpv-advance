@@ -38,6 +38,7 @@ local opts = {
     autofill        = true,                     -- 启动时自动用前若干路填满网格
     request_timeout = 1.5,                      -- API 请求超时（秒）
     overlay         = true,                     -- 是否绘制画格覆盖层
+    shortcut_hints  = true,                     -- 是否在非全屏窗口底部显示快捷键提示
     smoke_test      = false,                    -- 打包校验：初始化后自动退出
 }
 require "mp.options".read_options(opts, "surveillance")
@@ -257,6 +258,12 @@ end
 
 local overlay = mp.create_osd_overlay("ass-events")
 
+local SHORTCUT_HINT_TEXT =
+    "[c] 选监控   [\\] 主菜单   [l] 实时/回放   [k] 回放菜单   " ..
+    "[Space] 暂停   [←/→] 跳转   [f] 全屏   [q] 退出"
+local SHORTCUT_HINT_TEXT_COMPACT =
+    "c监控  \\菜单  l模式  k回放  Space暂停  ←/→跳转  f全屏  q退出"
+
 local STATUS_TEXT = {
     online    = { txt = "在线",   c = "&H4BC46B&" }, -- 绿
     recording = { txt = "录像中", c = "&H2F9BEB&" }, -- 橙
@@ -268,7 +275,13 @@ local function ass_escape(s)
 end
 
 local function draw_overlay()
-    if not opts.overlay then return end
+    -- 全屏保持纯画面；退出全屏后由 fullscreen 属性观察器自动恢复覆盖层。
+    if mp.get_property_native("fullscreen", false)
+        or (not opts.overlay and not opts.shortcut_hints) then
+        overlay.data = ""
+        overlay:update()
+        return
+    end
     local L = LAYOUTS[state.layout]
     local dw = mp.get_property_number("osd-width", 0)
     local dh = mp.get_property_number("osd-height", 0)
@@ -279,46 +292,66 @@ local function draw_overlay()
     local cw = dw / L.cols
     local ch = dh / L.rows
     local ev = {}
+    local hint_h = opts.shortcut_hints and math.max(30, math.min(42, math.floor(dh * 0.055))) or 0
 
-    -- 顶部状态条
-    local mode_txt = state.mode == "live" and "● 实时 LIVE" or "▷ 回放 PLAYBACK"
-    local api_txt  = state.api_ok and "API" or "本地"
-    ev[#ev+1] = string.format(
-        "{\\an7\\pos(%d,%d)\\fs20\\bord1.5\\3c&H000000&\\1c&HFFFFFF&}"
-        .. "监控 · %s · %s · 数据源:%s · 画格 %d/%d",
-        math.floor(cw * 0 + 10), 8, L.label, mode_txt, api_txt,
-        state.active, ncells())
-
-    for i = 1, ncells() do
-        local col = (i - 1) % L.cols
-        local row = math.floor((i - 1) / L.cols)
-        local x = col * cw
-        local y = row * ch
-        local cam = state.slots[i]
-        local is_active = (i == state.active)
-
-        -- 选中画格高亮边框
-        if is_active then
-            ev[#ev+1] = string.format(
-                "{\\an7\\pos(%d,%d)\\bord0\\shad0\\1a&HFF&\\3c&H2F9BEB&\\bord4\\p1}"
-                .. "m 0 0 l %d 0 l %d %d l 0 %d{\\p0}",
-                math.floor(x + 2), math.floor(y + 2),
-                math.floor(cw - 4), math.floor(cw - 4), math.floor(ch - 4),
-                math.floor(ch - 4))
-        end
-
-        -- 画格标签
-        local st = STATUS_TEXT[cam and cam.status] or { txt = "空", c = "&H888888&" }
-        local title
-        if cam then
-            title = string.format("[%d] %s  {\\c%s}%s{\\c&HFFFFFF&}",
-                is_active and i or i, ass_escape(cam.name), st.c, st.txt)
-        else
-            title = string.format("[%d] {\\c&H888888&}— 空画格 —{\\c&HFFFFFF&}", i)
-        end
+    if opts.overlay then
+        -- 顶部状态条
+        local mode_txt = state.mode == "live" and "● 实时 LIVE" or "▷ 回放 PLAYBACK"
+        local api_txt  = state.api_ok and "API" or "本地"
         ev[#ev+1] = string.format(
-            "{\\an1\\pos(%d,%d)\\fs18\\bord1.5\\shad0\\3c&H000000&\\1c&HFFFFFF&}%s",
-            math.floor(x + 10), math.floor(y + ch - 8), title)
+            "{\\an7\\pos(%d,%d)\\fs20\\bord1.5\\3c&H000000&\\1c&HFFFFFF&}"
+            .. "监控 · %s · %s · 数据源:%s · 画格 %d/%d",
+            math.floor(cw * 0 + 10), 8, L.label, mode_txt, api_txt,
+            state.active, ncells())
+
+        for i = 1, ncells() do
+            local col = (i - 1) % L.cols
+            local row = math.floor((i - 1) / L.cols)
+            local x = col * cw
+            local y = row * ch
+            local cam = state.slots[i]
+            local is_active = (i == state.active)
+
+            -- 选中画格高亮边框
+            if is_active then
+                ev[#ev+1] = string.format(
+                    "{\\an7\\pos(%d,%d)\\bord0\\shad0\\1a&HFF&\\3c&H2F9BEB&\\bord4\\p1}"
+                    .. "m 0 0 l %d 0 l %d %d l 0 %d{\\p0}",
+                    math.floor(x + 2), math.floor(y + 2),
+                    math.floor(cw - 4), math.floor(cw - 4), math.floor(ch - 4),
+                    math.floor(ch - 4))
+            end
+
+            -- 画格标签；最后一行上移，给常驻快捷键栏留出空间。
+            local st = STATUS_TEXT[cam and cam.status] or { txt = "空", c = "&H888888&" }
+            local title
+            if cam then
+                title = string.format("[%d] %s  {\\c%s}%s{\\c&HFFFFFF&}",
+                    is_active and i or i, ass_escape(cam.name), st.c, st.txt)
+            else
+                title = string.format("[%d] {\\c&H888888&}— 空画格 —{\\c&HFFFFFF&}", i)
+            end
+            local bottom_offset = 8 + ((row == L.rows - 1) and hint_h or 0)
+            ev[#ev+1] = string.format(
+                "{\\an1\\pos(%d,%d)\\fs18\\bord1.5\\shad0\\3c&H000000&\\1c&HFFFFFF&}%s",
+                math.floor(x + 10), math.floor(y + ch - bottom_offset), title)
+        end
+    end
+
+    if opts.shortcut_hints then
+        local hint_y = dh - hint_h
+        local hint_fs = math.max(13, math.min(18, math.floor(dw / 72)))
+        local hint_text = dw < 900 and SHORTCUT_HINT_TEXT_COMPACT or SHORTCUT_HINT_TEXT
+
+        -- 半透明底条只在非全屏窗口中常驻可见。
+        ev[#ev+1] = string.format(
+            "{\\an7\\pos(0,%d)\\bord0\\shad0\\1c&H000000&\\1a&H55&\\p1}"
+            .. "m 0 0 l %d 0 l %d %d l 0 %d{\\p0}",
+            hint_y, dw, dw, hint_h, hint_h)
+        ev[#ev+1] = string.format(
+            "{\\an5\\pos(%d,%d)\\fs%d\\bord1\\shad0\\3c&H000000&\\1c&HFFFFFF&}%s",
+            math.floor(dw / 2), math.floor(hint_y + hint_h / 2), hint_fs,
+            ass_escape(hint_text))
     end
 
     overlay.data = table.concat(ev, "\n")
@@ -809,6 +842,7 @@ end
 -- 覆盖层随窗口尺寸变化重绘
 mp.observe_property("osd-width",  "native", function () draw_overlay() end)
 mp.observe_property("osd-height", "native", function () draw_overlay() end)
+mp.observe_property("fullscreen", "bool",   function () draw_overlay() end)
 
 --------------------------------------------------------------------------------
 -- 启动

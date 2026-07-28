@@ -11,6 +11,8 @@ mpv-advance V1 便携版
 - 按 k 打开时段回放菜单
 - 按 \ 打开主菜单
 
+播放器在非全屏窗口底部一直显示常用快捷键提示；进入全屏后隐藏全部自定义覆盖层。
+
 无需安装 mpv、Python 或 curl，也不需要联网。不要只复制 start.cmd，必须保留
 runtime、portable_config、data 和 samples 目录。
 

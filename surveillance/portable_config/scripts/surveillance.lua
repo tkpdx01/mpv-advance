@@ -39,6 +39,7 @@ local opts = {
     request_timeout = 1.5,                      -- API 请求超时（秒）
     overlay         = true,                     -- 是否绘制画格覆盖层
     shortcut_hints  = true,                     -- 是否在非全屏窗口底部显示快捷键提示
+    external_file   = false,                    -- 安装版文件关联：保留命令行传入的视频
     smoke_test      = false,                    -- 打包校验：初始化后自动退出
 }
 require "mp.options".read_options(opts, "surveillance")
@@ -850,10 +851,17 @@ mp.observe_property("fullscreen", "bool",   function () draw_overlay() end)
 
 local function init()
     state.cameras = fetch_cameras()
+    if opts.external_file then
+        state.mode = "playback"
+        set_loop_for_mode()
+    end
     msg.info(string.format("监控脚本就绪：%d 路摄像头（数据源:%s），布局:%s，模式:%s",
         #state.cameras, state.api_ok and "API" or "本地",
         LAYOUTS[state.layout].label, state.mode))
-    if opts.autofill and #state.cameras > 0 then
+    if opts.external_file then
+        -- 由 Windows 文件关联传入的路径已经由 mpv 打开，不再用演示摄像头覆盖。
+        draw_overlay()
+    elseif opts.autofill and #state.cameras > 0 then
         autofill_grid()
         apply()
     else

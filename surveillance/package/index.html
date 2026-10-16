@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f7fb">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self' data:; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'none'; font-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>视频播放器 · 离线下载</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    html {
+      min-width: 320px;
+      background: #f4f7fb;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: #182235;
+      background:
+        radial-gradient(circle at 8% 5%, rgba(49, 126, 246, .10), transparent 28%),
+        radial-gradient(circle at 92% 15%, rgba(39, 181, 134, .09), transparent 26%),
+        #f4f7fb;
+      font-family: "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; }
+
+    .shell {
+      width: 1160px;
+      max-width: calc(100% - 40px);
+      margin: 0 auto;
+    }
+
+    .site-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 70px;
+      border-bottom: 1px solid #dfe6ef;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      font-weight: 750;
+      letter-spacing: -.01em;
+    }
+
+    .brand-mark {
+      position: relative;
+      width: 34px;
+      height: 34px;
+      margin-right: 11px;
+      overflow: hidden;
+      border-radius: 10px;
+      background: linear-gradient(145deg, #2478ed, #37b98d);
+      box-shadow: 0 8px 22px rgba(36, 120, 237, .22);
+    }
+
+    .brand-mark:before {
+      position: absolute;
+      top: 9px;
+      left: 12px;
+      width: 0;
+      height: 0;
+      content: "";
+      border-top: 8px solid transparent;
+      border-bottom: 8px solid transparent;
+      border-left: 12px solid #fff;
+    }
+
+    .brand-name { white-space: nowrap; font-size: 18px; }
+    .brand-version { margin-left: 8px; color: #8290a3; font-size: 12px; font-weight: 600; }
+
+    .offline-pill {
+      display: inline-block;
+      padding: 5px 11px;
+      border: 1px solid #cae9dd;
+      border-radius: 999px;
+      color: #17825f;
+      background: #ebf8f3;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .main {
+      padding: 42px 0 28px;
+    }
+
+    .hero {
+      display: flex;
+      align-items: stretch;
+      justify-content: space-between;
+      margin: 0 -15px;
+    }
+
+    .intro,
+    .recommend-card { margin: 15px; }
+
+    .intro {
+      width: calc(57% - 30px);
+      padding: 18px 14px 12px 0;
+    }
+
+    .recommend-card {
+      width: calc(43% - 30px);
+      padding: 27px;
+      border: 1px solid #dce5ef;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, .92);
+      box-shadow: 0 24px 60px rgba(42, 63, 91, .10), 0 2px 7px rgba(42, 63, 91, .04);
+    }
+
+    .mini-label {
+      margin: 0 0 13px;
+      color: #2375dc;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .04em;
+    }
+
+    h1 {
+      max-width: 650px;
+      margin: 0;
+      font-size: 49px;
+      line-height: 1.16;
+      letter-spacing: -.045em;
+    }
+
+    .highlight { color: #176fd2; }
+
+    .lead {
+      max-width: 650px;
+      margin: 22px 0 0;
+      color: #58687d;
+      font-size: 18px;
+    }
+
+    .facts {
+      display: flex;
+      flex-wrap: wrap;
+      padding: 0;
+      margin: 24px 0 0 -7px;
+      list-style: none;
+    }
+
+    .facts li {
+      position: relative;
+      margin: 5px 7px;
+      padding: 6px 11px 6px 26px;
+      border: 1px solid #dfe7f0;
+      border-radius: 999px;
+      color: #526276;
+      background: rgba(255,255,255,.67);
+      font-size: 12px;
+    }
+
+    .facts li:before {
+      position: absolute;
+      top: 12px;
+      left: 11px;
+      width: 7px;
+      height: 7px;
+      content: "";
+      border-radius: 50%;
+      background: #27af80;
+    }
+
+    .detect-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .detect-heading strong { color: #526276; font-size: 12px; letter-spacing: .05em; }
+
+    .local-only {
+      position: relative;
+      padding-left: 15px;
+      color: #8a98a9;
+      font-size: 11px;
+    }
+
+    .local-only:before {
+      position: absolute;
+      top: 7px;
+      left: 0;
+      width: 7px;
+      height: 7px;
+      content: "";
+      border-radius: 50%;
+      background: #2db486;
+      box-shadow: 0 0 0 4px rgba(45, 180, 134, .10);
+    }
+
+    .system-line {
+      margin: 0 0 5px;
+      color: #16805e;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .recommend-title {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.3;
+      letter-spacing: -.025em;
+    }
+
+    .recommend-copy {
+      min-height: 43px;
+      margin: 9px 0 20px;
+      color: #6a788a;
+      font-size: 13px;
+    }
+
+    .button {
+      display: block;
+      width: 100%;
+      padding: 13px 17px;
+      border: 1px solid transparent;
+      border-radius: 11px;
+      text-align: center;
+      text-decoration: none;
+      font-weight: 800;
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    }
+
+    .button:hover { transform: translateY(-2px); }
+    .button:focus { outline: 2px solid #2378e5; outline-offset: 3px; }
+
+    .button-primary {
+      color: #fff;
+      background: linear-gradient(100deg, #176fd2, #2389e8);
+      box-shadow: 0 12px 26px rgba(27, 116, 214, .20);
+    }
+
+    .alternate-link {
+      display: block;
+      margin-top: 11px;
+      color: #52708d;
+      text-align: center;
+      text-decoration: none;
+      font-size: 12px;
+    }
+
+    .alternate-link:hover { color: #176fd2; text-decoration: underline; }
+
+    .manual-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 18px;
+      margin-top: 18px;
+      border-top: 1px solid #e7edf3;
+    }
+
+    .manual-label { color: #8a97a7; font-size: 11px; }
+
+    .manual-links { display: flex; margin-left: 12px; }
+
+    .manual-links a {
+      min-width: 76px;
+      padding: 7px 10px;
+      margin-left: 8px;
+      border: 1px solid #d8e2ed;
+      border-radius: 8px;
+      color: #36536f;
+      background: #f8fafc;
+      text-align: center;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .manual-links a:hover { border-color: #8ebbea; color: #176fd2; background: #f2f7fd; }
+
+    .quick-start {
+      display: flex;
+      align-items: stretch;
+      margin-top: 26px;
+      border: 1px solid #dce5ef;
+      border-radius: 18px;
+      background: rgba(255,255,255,.78);
+      box-shadow: 0 12px 32px rgba(42, 63, 91, .05);
+    }
+
+    .steps {
+      display: flex;
+      flex: 1 1 auto;
+      min-width: 0;
+      padding: 18px 8px;
+    }
+
+    .step {
+      position: relative;
+      flex: 1 1 33%;
+      min-width: 0;
+      padding: 5px 18px 5px 52px;
+      border-right: 1px solid #e2e9f1;
+    }
+
+    .step:last-child { border-right: 0; }
+
+    .step-number {
+      position: absolute;
+      top: 7px;
+      left: 16px;
+      width: 27px;
+      height: 27px;
+      border-radius: 8px;
+      color: #176fd2;
+      background: #eaf3fd;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 27px;
+      text-align: center;
+    }
+
+    .step strong { display: block; margin-bottom: 2px; font-size: 14px; }
+    .step span { color: #7a899a; font-size: 12px; }
+
+    .win7-note {
+      flex: 0 0 292px;
+      padding: 20px 22px;
+      border-left: 1px solid #e2e9f1;
+      border-radius: 0 18px 18px 0;
+      color: #765f31;
+      background: #fffaf0;
+      font-size: 11px;
+    }
+
+    .win7-note strong { display: block; margin-bottom: 3px; color: #805f1d; font-size: 13px; }
+
+    code {
+      padding: 1px 5px;
+      border: 1px solid #dce5ef;
+      border-radius: 5px;
+      color: #2b567e;
+      background: #f4f8fc;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: .92em;
+    }
+
+    .noscript {
+      padding: 9px 11px;
+      margin-top: 12px;
+      border: 1px solid #ead8ab;
+      border-radius: 8px;
+      color: #80642a;
+      background: #fffaf0;
+      font-size: 11px;
+    }
+
+    @media (max-width: 920px) {
+      .main { padding-top: 28px; }
+      .hero { flex-wrap: wrap; }
+      .intro, .recommend-card { width: calc(100% - 30px); }
+      .intro { padding-top: 0; }
+      h1 { font-size: 42px; }
+      .recommend-card { margin-top: 22px; }
+      .quick-start { display: block; }
+      .win7-note { border-top: 1px solid #e2e9f1; border-left: 0; border-radius: 0 0 18px 18px; }
+    }
+
+    @media (max-width: 640px) {
+      .shell { max-width: calc(100% - 26px); }
+      .site-header { min-height: 64px; }
+      .brand-version { display: none; }
+      .offline-pill { padding: 4px 8px; }
+      .main { padding-top: 20px; }
+      .intro { margin-top: 5px; }
+      h1 { font-size: 34px; }
+      .lead { margin-top: 16px; font-size: 15px; }
+      .facts { margin-top: 17px; }
+      .recommend-card { padding: 21px; }
+      .local-only { display: none; }
+      .manual-row { display: block; }
+      .manual-links { margin: 10px 0 0 -8px; }
+      .manual-links a { flex: 1 1 auto; }
+      .steps { display: block; padding: 8px 18px; }
+      .step { padding: 13px 5px 13px 44px; border-right: 0; border-bottom: 1px solid #e2e9f1; }
+      .step:last-child { border-bottom: 0; }
+      .step-number { top: 14px; left: 4px; }
+      .win7-note { padding: 17px 20px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *:before, *:after { transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="shell site-header">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-name">视频播放器</span>
+      <span class="brand-version">V1 · 单窗口版</span>
+    </div>
+    <span class="offline-pill">离线便携版</span>
+  </header>
+
+  <main class="shell main">
+    <section class="hero" aria-labelledby="page-title">
+      <div class="intro">
+        <p class="mini-label">标准 Windows 安装程序</p>
+        <h1 id="page-title">视频播放器，<br><span class="highlight">下载安装就能用</span></h1>
+        <p class="lead">安装程序已经带齐播放器和运行组件，不需要另外安装环境，也不用连接互联网。安装时可以关联常见媒体和监控录像，之后双击视频文件就能打开。</p>
+        <ul class="facts">
+          <li>支持 Windows 7 SP1</li>
+          <li>32 / 64 位都有</li>
+          <li>支持安装与卸载</li>
+          <li>可关联监控录像</li>
+        </ul>
+      </div>
+
+      <aside class="recommend-card" aria-labelledby="recommend-title" aria-live="polite">
+        <div class="detect-heading">
+          <strong>这台电脑适合哪个版本？</strong>
+          <span class="local-only">只在本机判断</span>
+        </div>
+        <p class="system-line" id="detected-system">正在识别当前系统…</p>
+        <h2 class="recommend-title" id="recommend-title">建议下载 64 位版</h2>
+        <p class="recommend-copy" id="recommend-copy">适合 64 位 Windows，也是大多数电脑该选的版本。</p>
+        <a class="button button-primary" id="recommended-download"
+           href="./mpv-advance-v1-win7-64bit-setup.exe"
+           download="mpv-advance-v1-win7-64bit-setup.exe">下载 64 位版</a>
+        <a class="alternate-link" id="alternate-download"
+           href="./mpv-advance-v1-win7-32bit-setup.exe"
+           download="mpv-advance-v1-win7-32bit-setup.exe">这台电脑是 32 位？下载 32 位版</a>
+
+        <div class="manual-row">
+          <span class="manual-label">也可以自己选</span>
+          <div class="manual-links">
+            <a href="./mpv-advance-v1-win7-64bit-setup.exe" download="mpv-advance-v1-win7-64bit-setup.exe">64 位版</a>
+            <a href="./mpv-advance-v1-win7-32bit-setup.exe" download="mpv-advance-v1-win7-32bit-setup.exe">32 位版</a>
+          </div>
+        </div>
+        <noscript><div class="noscript">浏览器禁用了 JavaScript，无法自动判断。请按系统位数手动选择 64 位版或 32 位版。</div></noscript>
+      </aside>
+    </section>
+
+    <section class="quick-start" aria-label="使用方法">
+      <div class="steps">
+        <div class="step">
+          <span class="step-number">1</span>
+          <strong>下载</strong>
+          <span>选择 64 位或 32 位安装程序</span>
+        </div>
+        <div class="step">
+          <span class="step-number">2</span>
+          <strong>完成安装</strong>
+          <span>按需勾选文件关联</span>
+        </div>
+        <div class="step">
+          <span class="step-number">3</span>
+          <strong>打开视频</strong>
+          <span>开始菜单启动，或直接双击文件</span>
+        </div>
+      </div>
+      <div class="win7-note">
+        <strong>文件关联说明</strong>
+        默认可关联 MP4、MKV、AVI，以及 DAV、H264/H265、PS、TS 等监控格式。Windows 7 请确认已安装 SP1。
+      </div>
+    </section>
+  </main>
+
+  <script>
+  (function () {
+    "use strict";
+
+    var downloads = {
+      x64: {
+        file: "mpv-advance-v1-win7-64bit-setup.exe",
+        title: "建议下载 64 位版",
+        button: "下载 64 位版",
+        copy: "适合 64 位 Windows，也是大多数电脑该选的版本。"
+      },
+      x86: {
+        file: "mpv-advance-v1-win7-32bit-setup.exe",
+        title: "建议下载 32 位版",
+        button: "下载 32 位版",
+        copy: "适合 32 位 Windows 7 SP1。正式部署前，先在目标电脑上试跑一次。"
+      }
+    };
+
+    function element(id) {
+      return document.getElementById(id);
+    }
+
+    function windowsName(ua) {
+      if (/Windows NT 10\.0/i.test(ua)) { return "Windows 10 / 11"; }
+      if (/Windows NT 6\.3/i.test(ua)) { return "Windows 8.1"; }
+      if (/Windows NT 6\.2/i.test(ua)) { return "Windows 8"; }
+      if (/Windows NT 6\.1/i.test(ua)) { return "Windows 7"; }
+      if (/Windows NT 6\.0/i.test(ua)) { return "Windows Vista"; }
+      if (/Windows NT 5\./i.test(ua)) { return "Windows XP"; }
+      return "Windows";
+    }
+
+    function detectFromUserAgent() {
+      var ua = navigator.userAgent || "";
+      var platform = navigator.platform || "";
+      var isWindows = /Windows/i.test(ua) || /^Win/i.test(platform);
+      var isArm = /ARM64|AARCH64/i.test(ua + " " + platform);
+      var is64 = /Win64|x64|WOW64|amd64|x86_64/i.test(ua + " " + platform);
+
+      return {
+        windows: isWindows,
+        os: isWindows ? windowsName(ua) : "非 Windows 系统",
+        arch: isArm ? "arm64" : (is64 ? "x64" : (isWindows ? "x86" : "unknown"))
+      };
+    }
+
+    function render(env) {
+      var recommended = element("recommended-download");
+      var alternate = element("alternate-download");
+      var system = element("detected-system");
+      var title = element("recommend-title");
+      var copy = element("recommend-copy");
+      var target;
+      var other;
+
+      if (!env.windows) {
+        system.textContent = "当前不是 Windows 设备";
+        title.textContent = "请在 Windows 电脑上使用";
+        copy.textContent = "这里只提供 Windows 版本。也可以先下载，再拷到目标电脑。";
+        target = downloads.x64;
+        other = downloads.x86;
+      } else if (env.arch === "arm64") {
+        system.textContent = env.os + " · ARM 架构";
+        title.textContent = "目前没有 ARM 原生版";
+        copy.textContent = "如果系统能运行 64 位程序，可以先试 64 位版，正式使用前请先验证。";
+        target = downloads.x64;
+        other = downloads.x86;
+      } else {
+        target = downloads[env.arch] || downloads.x64;
+        other = env.arch === "x86" ? downloads.x64 : downloads.x86;
+        system.textContent = env.os + " · " + (env.arch === "x86" ? "32 位" : "64 位");
+        title.textContent = target.title;
+        copy.textContent = target.copy;
+      }
+
+      recommended.href = "./" + target.file;
+      recommended.setAttribute("download", target.file);
+      recommended.textContent = env.windows && env.arch !== "arm64" ? target.button : "下载 Windows 64 位版";
+
+      alternate.href = "./" + other.file;
+      alternate.setAttribute("download", other.file);
+      alternate.textContent = other === downloads.x86
+        ? "这台电脑是 32 位？下载 32 位版"
+        : "想用 64 位版？下载 64 位版";
+    }
+
+    function enhanceWithUserAgentData(env) {
+      var data = navigator.userAgentData;
+      var request;
+
+      if (!data || typeof data.getHighEntropyValues !== "function") { return; }
+
+      try {
+        request = data.getHighEntropyValues(["architecture", "bitness", "wow64", "platformVersion"]);
+      } catch (error) {
+        return;
+      }
+      if (!request || typeof request.then !== "function") { return; }
+
+      request.then(function (values) {
+        var platform = data.platform || "";
+        var architecture = String(values.architecture || "").toLowerCase();
+        var bitness = String(values.bitness || "");
+        var versionMajor = parseInt(String(values.platformVersion || "0").split(".")[0], 10);
+
+        env.windows = /Windows/i.test(platform) || env.windows;
+        if (env.windows && versionMajor >= 13) { env.os = "Windows 11"; }
+        else if (env.windows && versionMajor >= 10) { env.os = "Windows 10"; }
+
+        if (/arm/.test(architecture)) { env.arch = "arm64"; }
+        else if (values.wow64 === true || bitness === "64" || /64/.test(architecture)) { env.arch = "x64"; }
+        else if (bitness === "32") { env.arch = "x86"; }
+
+        render(env);
+      }, function () {
+        /* file:// 和旧浏览器可能不支持更精确的识别，保留基础判断即可。 */
+      });
+    }
+
+    var environment = detectFromUserAgent();
+    render(environment);
+    enhanceWithUserAgentData(environment);
+  }());
+  </script>
+</body>
+</html>
